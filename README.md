@@ -18,7 +18,7 @@ Add Material CAB to your module's `build.gradle` dependencies block:
 ```Gradle
 dependencies {
 
-  implementation 'com.afollestad:material-cab:1.3.0'
+  implementation 'com.afollestad:material-cab:1.3.1'
 }
 ```
 
@@ -42,7 +42,7 @@ For an example, this is the main layout of the sample project:
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <android.support.v7.widget.Toolbar
+    <androidx.appcompat.widget.Toolbar
       android:id="@+id/main_toolbar"
       android:layout_width="match_parent"
       android:layout_height="?actionBarSize"
@@ -60,7 +60,7 @@ For an example, this is the main layout of the sample project:
 
   </FrameLayout>
 
-  <android.support.v7.widget.RecyclerView
+  <androidx.recyclerview.widget.RecyclerView
     android:id="@+id/list"
     android:layout_width="match_parent"
     android:layout_height="match_parent"

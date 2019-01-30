@@ -1,7 +1,17 @@
-/*
- * Licensed under Apache-2.0
- *
+/**
  * Designed and developed by Aidan Follestad (@afollestad)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
@@ -11,6 +21,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.View.VISIBLE
@@ -36,7 +47,8 @@ class MaterialCab(
   @IdRes private var attachToId: Int
 ) : Toolbar.OnMenuItemClickListener {
 
-  private var createCallback: CreateCallback? = null
+  private var createCallback: CreateUpdateCallback? = null
+  private var updateCallback: CreateUpdateCallback? = null
   private var selectCallback: SelectCallback? = null
   private var destroyCallback: DestroyCallback? = null
 
@@ -111,6 +123,13 @@ class MaterialCab(
       }
     }
 
+  /**
+   * Retrieves the CAB's menu. Note that you can replace the menu entirely by
+   * re-assigning [menuRes], which will re-inflate the menu.
+   */
+  val menu: Menu?
+    get() = toolbar?.menu
+
   @ColorInt
   var backgroundColor: Int = context.colorAttr(R.attr.colorPrimaryDark, Color.GRAY)
     set(value) {
@@ -134,8 +153,12 @@ class MaterialCab(
       }
     }
 
-  fun onCreate(callback: CreateCallback) {
+  fun onCreate(callback: CreateUpdateCallback) {
     this.createCallback = callback
+  }
+
+  fun onUpdate(callback: CreateUpdateCallback) {
+    this.updateCallback = callback
   }
 
   fun onSelection(callback: SelectCallback) {
@@ -203,7 +226,7 @@ class MaterialCab(
       if (isNew) {
         instance = MaterialCab(context, attachToId)
       }
-      with(instance!!) {
+      with(instance ?: return) {
         exec()
         inject(isNew)
       }
@@ -236,10 +259,10 @@ class MaterialCab(
     }
 
     fun saveState(out: Bundle?) {
-      if (out == null || instance == null) {
+      if (out == null) {
         return
       }
-      with(instance!!) {
+      with(instance ?: return) {
         out.putInt(KEY_ATTACHTO_ID, attachToId)
         out.putString(KEY_TITLE, title)
         out.putInt(KEY_TITLE_COLOR, titleColor)
@@ -257,10 +280,7 @@ class MaterialCab(
       get() = instance != null
 
     fun destroy(): Boolean {
-      if (instance == null) {
-        return false
-      }
-      with(instance!!) {
+      with(instance ?: return false) {
         val canDestroy = destroyCallback?.invoke(this) ?: true
         if (!canDestroy) {
           // Callback signaled to block destruction
@@ -269,7 +289,7 @@ class MaterialCab(
 
         val animator = this.destroyAnimator
         if (animator != null) {
-          val view = this.toolbar!!
+          val view = this.toolbar ?: return false
           view.animate()
               .cancel()
           view.animate()
@@ -282,10 +302,12 @@ class MaterialCab(
       }
     }
 
-    internal fun finalizeDestroy() = with(instance!!) {
-      toolbar?.visibility = View.GONE
-      toolbar = null
-      ctxt = null
+    internal fun finalizeDestroy() {
+      instance?.let {
+        it.toolbar?.visibility = View.GONE
+        it.toolbar = null
+        it.ctxt = null
+      }
       instance = null
     }
   }
@@ -327,7 +349,7 @@ class MaterialCab(
     this.backgroundColor = backgroundColor
     this.contentInsetStart = contentInsetStart
 
-    with(toolbar!!) {
+    with(toolbar ?: return) {
       visibility = VISIBLE
       id = R.id.mcab_toolbar
       setNavigationOnClickListener { destroy() }
@@ -338,6 +360,8 @@ class MaterialCab(
             .setListener(null)
             .cancel()
         onLayout { createAnimator?.invoke(this, animate()) }
+      } else {
+        updateCallback?.invoke(this@MaterialCab, menu)
       }
     }
   }
